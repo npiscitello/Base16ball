@@ -46,3 +46,9 @@ you'll get a strike! A 'ball' might look something like the examples shown below
 ###Goals (this game might...):
 * have both batting and fielding play modes
 * display the baseball diamond with runners on base
+
+##Implementation
+There will be a 'ball' and an 'umpire' class. The 'ball' class will create objects of the 'ball'
+containing data such as the text to display, the class of problem (hex -> bin, etc.), and the
+answer. The 'umpire' class will be in charge of generating balls and judging input. There's also
+going to be a 'manager' class as a wrapper; it will handle play/pause, save, and statistics storage.
