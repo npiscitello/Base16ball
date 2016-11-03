@@ -10,7 +10,7 @@ game for your team!
 This game is a final project for Wentworth Institute of Technology cource ELEC3150, taught by
 Dr. Marpaung.
 
-##Specification
+##Specifications and Scope
 This game is a baseball-themed way to exercise your binary, oct, and hex conversion skills. Each
 'ball' will have a number and a format on it - your job is to convert the number to the requested
 format. If you do this fast enough, you'll hit the ball! If you get the right answer but take a
@@ -23,7 +23,7 @@ you'll get a strike! A 'ball' might look something like the examples shown below
 | binary | |   oct  |
  \______/   \______/
 ```
-###Requirements (this game must...):
+###Requirements (this game will...):
 * be text based, with all input and output occuring on a terminal
 * compile with no warnings or errors on Wentworth's Turing system
 * entertain the user for at least one hour
@@ -39,11 +39,11 @@ you'll get a strike! A 'ball' might look something like the examples shown below
 * animate the 'ball' being pitched
 * have provisions for hits, balls, or strikes
 
-###Objectives (this game should...):
+###Close Goals (this game should...):
 * animate the batting action
 * have additional provisions for a single, double, triple, or home run
 
-###Goals (this game might...):
+###Far Goals (this game could...):
 * have both batting and fielding play modes
 * display the baseball diamond with runners on base
 
