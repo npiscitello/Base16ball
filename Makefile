@@ -5,11 +5,11 @@
 # include file and library can still be found
 
 # Sources to build
-SRCS := ncurses_test.cc
+SRCS := 
 BINS := $(SRCS:.cc=)
 
 # Compiler arguments
-CXXFLAGS := 
+CXXFLAGS := -std=c++11
 
 # Search paths for '*.h' files
 INCLUDES := -I/home/piscitellon/custom_builds/install/include
