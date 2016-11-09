@@ -5,7 +5,8 @@
 # include file and library can still be found
 
 # Sources to build
-SRCS := 
+SRCS := ball_testapp \
+				umpire_testapp.cc
 BINS := $(SRCS:.cc=)
 
 # Compiler arguments

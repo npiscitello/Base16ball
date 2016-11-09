@@ -1,5 +1,8 @@
 // Ball class for base16ball
-// Nick Piscitello, 2016
+// Nick Piscitello, 11/2016
+
+#ifndef BALL_H
+#define BALL_H
 
 #include <string>
 #include <sstream>
@@ -7,6 +10,7 @@
 #include <iomanip>
 #include <bitset>
 #include <cstdint>
+#include <vector>
 
 struct Ball {
 
@@ -17,15 +21,22 @@ struct Ball {
     BIN = 3
   };
 
+  // how many formats are contained in the format enum
+  // there's probably a dynamic way to determine this?
+  static const std::uint8_t NUM_FORMATS = 3;
+
+  // a typedef for a vector that stores pairs of allowed conversions
+  typedef std::vector<std::pair<format_e, format_e>> conversions_t;
+
   // the type of ball that can be thrown
-  enum type_e {
+  enum width_e {
     WIDTH8 = 1,
     WIDTH16 = 2
   };
 
   // storage for ball info
   // 8 or 16 bit 'ball'
-  type_e type;
+  width_e type;
   // number of the 'ball'
   std::uint16_t num;
   // format of the question and answer
@@ -37,7 +48,7 @@ struct Ball {
   std::string answer;
 
   // constructor - fill storage
-  Ball( type_e ty = WIDTH8, std::uint16_t number = 0, format_e from = HEX, format_e to = BIN ) {
+  Ball( width_e ty = WIDTH8, std::uint16_t number = 0, format_e from = HEX, format_e to = BIN ) {
     type = ty;
     num = number;
     from_fmt = from; to_fmt = to;
@@ -101,3 +112,5 @@ struct Ball {
     answer = to_ss.str();
   }
 };
+
+#endif
