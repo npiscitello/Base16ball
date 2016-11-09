@@ -6,14 +6,15 @@
 
 # Sources to build
 SRCS := ball_testapp \
-				umpire_testapp.cc
+				umpire_testapp.cc \
+				main.cc
 BINS := $(SRCS:.cc=)
 
 # Compiler arguments
 CXXFLAGS := -std=c++11
 
 # Search paths for '*.h' files
-INCLUDES := -I/home/piscitellon/custom_builds/install/include
+INCLUDES := -I/home/piscitellon/custom_builds/install/include/ncurses
 
 # Search paths for 'lib*.so' files
 LD_PATHS := -L/home/piscitellon/custom_builds/install/lib

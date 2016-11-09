@@ -11,7 +11,7 @@ int main() {
   conversions.push_back(std::make_pair(Ball::OCT, Ball::BIN));
   conversions.push_back(std::make_pair(Ball::BIN, Ball::OCT));
 
-  // instantiate empires
+  // instantiate umpires
   Umpire ump8(Ball::WIDTH8, conversions);
   Umpire ump16(Ball::WIDTH16, conversions);
 
