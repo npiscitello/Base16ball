@@ -38,6 +38,8 @@ int main() {
 
     // create the menu
     MENU* menu = new_menu(items);
+    // make the menu multi-valued
+    menu_opts_off(menu, O_ONEVALUE);
     // push the menu to the ncurses screen
     post_menu(menu);
     // refresh physical terminal
@@ -48,21 +50,24 @@ int main() {
       switch( c ) {
         case 'j': // intentional fall-through
         case KEY_DOWN:
+          // move down
           menu_driver(menu, REQ_DOWN_ITEM);
           break;
         case 'k': // intentional fall-through
         case KEY_UP:
+          // move up
           menu_driver(menu, REQ_UP_ITEM);
           break;
         case ' ':
-          // push the value at the key of the current item to the conversions vector
-          // this isn't actually working! Maybe it's the multivalue thing?
-          for( int i = 0; i < item_count(menu); i++ ) {
-            if( item_value(items[i]) == TRUE ) {
-              conversions.push_back(selections_map.find(items[i])->second);
-            }
-          }
+          // select the current menu item
+          menu_driver(menu, REQ_TOGGLE_ITEM);
           break;
+      }
+    }
+    // push the value at the key of the selected items to the conversions vector
+    for( int i = 0; i < item_count(menu); i++ ) {
+      if( item_value(items[i]) == TRUE ) {
+        conversions.push_back(selections_map.find(items[i])->second);
       }
     }
     // remove menu from the screen and memory
@@ -71,43 +76,44 @@ int main() {
     refresh();
   }
 
-  mvprintw(10, 30, "conversions size: %d", conversions.size());
- 
   // instantiate umpires
   Umpire ump8(Ball::WIDTH8, conversions);
 
-  // ask new questions until we run out of screen space
-  for( int i = 2; i < row - 2; i += 4 ) {
-    // generate ball and convenience strings
-    Ball ball = ump8.throwBall();
-    std::string question  = "question: " + ball.question;
-    std::string answer    = "answer: " + ball.answer;
-    std::string to_format;
-    switch( ball.to_fmt ) {
-      case Ball::HEX:
-        to_format = "0x";
-        break;
-      case Ball::OCT:
-        to_format = "0";
-        break;
-      case Ball::BIN:
-        to_format = "0b";
-        break;
-    }
+  // only do stuff if the user selected something
+  if( conversions.size() != 0 ) {
+    // ask new questions until we run out of screen space
+    for( int i = 2; i < row - 2; i += 4 ) {
+      // generate ball and convenience strings
+      Ball ball = ump8.throwBall();
+      std::string question  = "question: " + ball.question;
+      std::string answer    = "answer: " + ball.answer;
+      std::string to_format;
+      switch( ball.to_fmt ) {
+        case Ball::HEX:
+          to_format = "0x";
+          break;
+        case Ball::OCT:
+          to_format = "0";
+          break;
+        case Ball::BIN:
+          to_format = "0b";
+          break;
+      }
 
-    // print to ncurses
-    mvprintw(i, 5, question.c_str());
-    mvprintw(i + 1, 5, "Your answer: %s", to_format.c_str());
-    // print to the real screen
-    refresh();
+      // print to ncurses
+      mvprintw(i, 5, question.c_str());
+      mvprintw(i + 1, 5, "Your answer: %s", to_format.c_str());
+      // print to the real screen
+      refresh();
 
-    // get/check answer and display result
-    char ans[20];
-    getstr(ans);
-    if( ump8.checkBall(to_format + std::string(ans), ball) ) {
-      mvprintw(i + 2, 5, "Correct!");
-    } else {
-      mvprintw(i + 2, 5, "Incorrect - the answer was %s", ball.answer.c_str());
+      // get/check answer and display result
+      char ans[20];
+      getstr(ans);
+      if( ump8.checkBall(to_format + std::string(ans), ball) ) {
+        mvprintw(i + 2, 5, "Correct!");
+      } else {
+        mvprintw(i + 2, 5, "Incorrect - the answer was %s", ball.answer.c_str());
+      }
     }
   }
   // end curses mode
