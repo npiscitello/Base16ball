@@ -48,10 +48,8 @@ struct Ball {
   std::string answer;
 
   // constructor - fill storage
-  Ball( width_e ty = WIDTH8, std::uint16_t number = 0, format_e from = HEX, format_e to = BIN ) {
-    type = ty;
-    num = number;
-    from_fmt = from; to_fmt = to;
+  Ball( width_e ty = WIDTH8, std::uint16_t number = 0, format_e from = HEX, format_e to = BIN ) :
+    type(ty), num(number), from_fmt(from), to_fmt(to) {
 
     // width multiplier for question and answer
     std::uint8_t width_mult;
