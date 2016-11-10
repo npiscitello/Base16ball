@@ -5,7 +5,7 @@
 # include file and library can still be found
 
 # Sources to build
-SRCS := ball_testapp \
+SRCS := ball_testapp.cc \
 				umpire_testapp.cc \
 				main.cc
 BINS := $(SRCS:.cc=)
@@ -29,3 +29,9 @@ all: $(BINS)
 %: %.cc
 	@echo "compiling $@..."
 	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
+
+# Clean all compiled things
+.PHONY: clean
+clean:
+	@echo "Cleaning out compiled binaries..."
+	rm -f $(BINS)
