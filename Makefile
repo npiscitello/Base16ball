@@ -14,7 +14,8 @@ BINS := $(SRCS:.cc=)
 CXXFLAGS := -std=c++11
 
 # Search paths for '*.h' files
-INCLUDES := -I/home/piscitellon/custom_builds/install/include/ncurses
+INCLUDES := -I/home/piscitellon/custom_builds/install/include/ \
+						-I/home/piscitellon/custom_builds/install/include/ncurses
 
 # Search paths for 'lib*.so' files
 LD_PATHS := -L/home/piscitellon/custom_builds/install/lib
