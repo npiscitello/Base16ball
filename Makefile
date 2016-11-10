@@ -20,7 +20,8 @@ INCLUDES := -I/home/piscitellon/custom_builds/install/include/ncurses
 LD_PATHS := -L/home/piscitellon/custom_builds/install/lib
 
 # Shared libraries to link against
-LD_FLAGS := -lncurses
+LD_FLAGS := -lmenu \
+						-lncurses
 
 # Compile all binaries
 all: $(BINS)
