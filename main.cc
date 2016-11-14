@@ -79,15 +79,13 @@ int main() {
         // input not ready!
         std::this_thread::sleep_for(step_delay);
       } else {
-        // writing the null byte doesn't work correctly...
-        if( index < (20 - 1) ) {
-          ans[index + 1] = '\0';
-        } else {
-          ans[index] = '\0';
-        }
         if( ans[index] == '\n' ) {
           ans[index] = '\0';
           break;
+        } else {
+          // append null byte after every added character
+          // this isn't working correctly! Correct answers will only register if enter is pressed
+          ans[index + 1] = '\0';
         }
         index++;
       }
@@ -95,10 +93,11 @@ int main() {
 
     // get/check answer and display result
     wmove(input_win, 4, 5);
-    if( ump.checkBall(to_format + std::string(ans), ball) ) {
+    std::string processed_ans(to_format + std::string(ans));
+    if( ump.checkBall(processed_ans, ball) ) {
       wprintw(input_win, "Correct!");
     } else {
-      wprintw(input_win, "Incorrect - the answer was %s, you put %s", ball.answer.c_str(), ans);
+      wprintw(input_win, "Incorrect - the answer was %s, you put %s", ball.answer.c_str(), processed_ans.c_str());
     }
     wrefresh(input_win);
   }
