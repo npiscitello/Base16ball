@@ -10,8 +10,9 @@
 
 // how many milliseconds to take scrolling the screen
 std::uint32_t THROW_MS = 5000;
-// how many characters to start off the right side
+// side character offset
 std::uint8_t RT_OFFSET = 20;
+std::uint8_t LF_OFFSET = 5;
 
 // use a menu to get options
 Ball::conversions_t getConversions();
@@ -68,27 +69,29 @@ int main() {
     wrefresh(input_win);
 
     // animate question across the screen and check for answer
-    char ans[20]; ans[0] = '\0';
+    char ans[20];
     uint8_t index = 0;
-    std::chrono::milliseconds step_delay(THROW_MS / (col - RT_OFFSET));
-    for( int j = (col - RT_OFFSET); j > 0; j-- ) {
+    std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
+    for( int j = (col - RT_OFFSET); j > LF_OFFSET; j-- ) {
       mvwprintw(ball_win, 2, j, (question + " ").c_str());
       wrefresh(ball_win);
       // this is not the same 20 as the size of the array, that's a coincidence
-      if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) == ERR ) {
-        // input not ready!
-        std::this_thread::sleep_for(step_delay);
-      } else {
+      if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) != ERR ) {
         if( ans[index] == '\n' ) {
+          // replace the newline with a null byte
           ans[index] = '\0';
           break;
         } else {
           // append null byte after every added character
-          // this isn't working correctly! Correct answers will only register if enter is pressed
           ans[index + 1] = '\0';
         }
         index++;
+      } else {
+        // replace the error read with a null byte
+        ans[index] = '\0';
       }
+      // wait for the animation
+      std::this_thread::sleep_for(step_delay);
     }
 
     // get/check answer and display result
@@ -97,7 +100,7 @@ int main() {
     if( ump.checkBall(processed_ans, ball) ) {
       wprintw(input_win, "Correct!");
     } else {
-      wprintw(input_win, "Incorrect - the answer was %s, you put %s", ball.answer.c_str(), processed_ans.c_str());
+      wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
     }
     wrefresh(input_win);
   }
