@@ -1,8 +1,17 @@
 #include <ncurses.h>
 #include <menu.h>
 #include <map>
+// for animation
+#include <chrono>
+// for animation delay
+#include <thread>
 #include "umpire.h"
 #include "ball.h"
+
+// how many milliseconds to take scrolling the screen
+std::uint32_t THROW_MS = 5000;
+// how many characters to start off the right side
+std::uint8_t RT_OFFSET = 20;
 
 // use a menu to get options
 Ball::conversions_t getConversions();
@@ -14,11 +23,19 @@ int main() {
   // screen size
   int row, col;
 
-  // start curses mode with special key support
+  // start curses mode with special key support and a hidden cursor
   initscr();
   keypad(stdscr, TRUE);
+  curs_set(0);
   // get the size of the screen
   getmaxyx(stdscr, row, col);
+
+  // create windows
+  WINDOW* ball_win = newwin(5, col-1, 0, 0);
+  WINDOW* input_win = newwin(row-6, col-1, 5, 0);
+
+  // don't wait for input on the input window
+  nodelay(input_win, TRUE);
 
   // get the allowed conversions
   Ball::conversions_t conversions = getConversions();
@@ -29,42 +46,64 @@ int main() {
     // instantiate umpires
     Umpire ump(getWidth(), conversions);
 
-    // ask new questions until we run out of screen space
-    for( int i = 2; i < row - 2; i += 4 ) {
-      // generate ball and convenience strings
-      Ball ball = ump.throwBall();
-      std::string question  = "question: " + ball.question;
-      std::string answer    = "answer: " + ball.answer;
-      std::string to_format;
-      switch( ball.to_fmt ) {
-        case Ball::HEX:
-          to_format = "0x";
-          break;
-        case Ball::OCT:
-          to_format = "0";
-          break;
-        case Ball::BIN:
-          to_format = "0b";
-          break;
-      }
+    // generate ball and convenience strings
+    Ball ball = ump.throwBall();
+    std::string question  = "question: " + ball.question;
+    std::string answer    = "answer: " + ball.answer;
+    std::string to_format;
+    switch( ball.to_fmt ) {
+      case Ball::HEX:
+        to_format = "0x";
+        break;
+      case Ball::OCT:
+        to_format = "0";
+        break;
+      case Ball::BIN:
+        to_format = "0b";
+        break;
+    }
 
-      // print to ncurses
-      mvprintw(i, 5, question.c_str());
-      mvprintw(i + 1, 5, "Your answer: %s", to_format.c_str());
-      // print to the real screen
-      refresh();
+    // ask for answer
+    mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
+    wrefresh(input_win);
 
-      // get/check answer and display result
-      char ans[20];
-      getstr(ans);
-      if( ump.checkBall(to_format + std::string(ans), ball) ) {
-        mvprintw(i + 2, 5, "Correct!");
+    // animate question across the screen and check for answer
+    char ans[20]; ans[0] = '\0';
+    uint8_t index = 0;
+    std::chrono::milliseconds step_delay(THROW_MS / (col - RT_OFFSET));
+    for( int j = (col - RT_OFFSET); j > 0; j-- ) {
+      mvwprintw(ball_win, 2, j, (question + " ").c_str());
+      wrefresh(ball_win);
+      // this is not the same 20 as the size of the array, that's a coincidence
+      if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) == ERR ) {
+        // input not ready!
+        std::this_thread::sleep_for(step_delay);
       } else {
-        mvprintw(i + 2, 5, "Incorrect - the answer was %s", ball.answer.c_str());
+        // writing the null byte doesn't work correctly...
+        if( index < (20 - 1) ) {
+          ans[index + 1] = '\0';
+        } else {
+          ans[index] = '\0';
+        }
+        if( ans[index] == '\n' ) {
+          ans[index] = '\0';
+          break;
+        }
+        index++;
       }
     }
+
+    // get/check answer and display result
+    wmove(input_win, 4, 5);
+    if( ump.checkBall(to_format + std::string(ans), ball) ) {
+      wprintw(input_win, "Correct!");
+    } else {
+      wprintw(input_win, "Incorrect - the answer was %s, you put %s", ball.answer.c_str(), ans);
+    }
+    wrefresh(input_win);
   }
   // end curses mode
+  getch();
   endwin();
 }
 
