@@ -34,24 +34,35 @@ LD_FLAGS := -lmenu \
 						-lncurses \
 						-lprotobuf
 
+# only compile the game essentials
+.PHONY: game
+game: base16ball
+	@echo ""
+	@echo "=========================="
+	@echo " Game essentials compiled "
+	@echo "=========================="
+	@echo ""
+
 # Compile all binaries
 all: $(BINS)
 
 # Compile a binary from a '*.cc' source
-bin/%: src/%.cc
+bin/%: src/%.cc $(PROTO_CPP)
 	@echo -e "\ncompiling $@..."
-	@echo "protobuf sources are prereqs for any binary build..."
-	@make $(PROTO_CPP)
 	@mkdir -p bin
-	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(PROTO_CPP) $(LD_FLAGS)
+	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
 
 # Compile usable protobuf messages from .proto files
 %.pb.h %.pb.cc: %.proto
-	@echo "generating protobuf messages from $^"
+	@echo -e "\ngenerating protobuf messages from $^"
 	protoc --cpp_out=. $(PROTO_MSGS)
+
+# make the full game (basically makes main and copies it)
+base16ball: bin/main
+	@cp bin/main base16ball
 
 # Clean all compiled things
 .PHONY: clean
 clean:
-	@echo "Cleaning out compiled binaries..."
-	rm -rf bin proto/*.pb.*
+	@echo -e "\nCleaning out compiled things..."
+	rm -rf bin proto/*.pb.* base16ball
