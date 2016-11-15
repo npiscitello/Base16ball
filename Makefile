@@ -10,11 +10,16 @@ SRCS := ball_testapp.cc \
 				main.cc
 BINS := $(SRCS:.cc=)
 
+# protobuf sources
+PROTO_MSGS 	:= leaderboard.proto
+PROTO_CPP		:= $(PROTO_MSGS:.proto=.pb.cc)
+
 # Compiler arguments
 CXXFLAGS := -std=c++11
 
 # Search paths for '*.h' files
-INCLUDES := -I/home/piscitellon/custom_builds/install/include/ \
+INCLUDES := -I. \
+						-I/home/piscitellon/custom_builds/install/include/ \
 						-I/home/piscitellon/custom_builds/install/include/ncurses
 
 # Search paths for 'lib*.so' files
@@ -28,12 +33,17 @@ LD_FLAGS := -lmenu \
 all: $(BINS)
 
 # Compile a binary from a '*.cc' source
-%: %.cc
+%: %.cc $(PROTO_CPP)
 	@echo "compiling $@..."
 	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
+
+# Compile usable protobuf messages from .proto files
+%.pb.cc: %.proto
+	@echo "generating protobuf messages from $^"
+	protoc --cpp_out=. $(PROTO_MSGS)
 
 # Clean all compiled things
 .PHONY: clean
 clean:
 	@echo "Cleaning out compiled binaries..."
-	rm -f $(BINS)
+	rm -f $(BINS) *.pb.*

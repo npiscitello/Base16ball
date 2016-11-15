@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+message Player {
+  required string name = 1;
+  optional string initials = 2 [default = ""];
+  required uint32 score = 3;
+  optional uint32 rank = 4 [default = 0];
+}
+
+message Leaderboard {
+  optional string id = 1 [default = "global"];
+  repeated Player player= 2;
+}

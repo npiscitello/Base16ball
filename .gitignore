@@ -4,3 +4,4 @@ ball_testapp
 umpire_testapp
 main
 a.out
+*.pb.*
