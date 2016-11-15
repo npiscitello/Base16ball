@@ -27,18 +27,21 @@ LD_PATHS := -L/home/piscitellon/custom_builds/install/lib
 
 # Shared libraries to link against
 LD_FLAGS := -lmenu \
-						-lncurses
+						-lncurses \
+						-lprotobuf
 
 # Compile all binaries
 all: $(BINS)
 
 # Compile a binary from a '*.cc' source
-%: %.cc $(PROTO_CPP)
-	@echo "compiling $@..."
-	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
+%: %.cc
+	@echo -e "\ncompiling $@..."
+	@echo "protobuf sources are prereqs for any binary build..."
+	@make $(PROTO_CPP)
+	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(PROTO_CPP) $(LD_FLAGS)
 
 # Compile usable protobuf messages from .proto files
-%.pb.cc: %.proto
+%.pb.h %.pb.cc: %.proto
 	@echo "generating protobuf messages from $^"
 	protoc --cpp_out=. $(PROTO_MSGS)
 
