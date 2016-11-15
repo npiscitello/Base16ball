@@ -8,10 +8,13 @@
 SRCS := ball_testapp.cc \
 				umpire_testapp.cc \
 				main.cc
+SRC := $(addprefix src/,$(SRCS))
 BINS := $(SRCS:.cc=)
+BINS := $(addprefix bin/,$(BINS))
 
 # protobuf sources
 PROTO_MSGS 	:= leaderboard.proto
+PROTO_MSGS 	:= $(addprefix proto/, $(PROTO_MSGS))
 PROTO_CPP		:= $(PROTO_MSGS:.proto=.pb.cc)
 
 # Compiler arguments
@@ -19,6 +22,7 @@ CXXFLAGS := -std=c++11
 
 # Search paths for '*.h' files
 INCLUDES := -I. \
+						-I./include \
 						-I/home/piscitellon/custom_builds/install/include/ \
 						-I/home/piscitellon/custom_builds/install/include/ncurses
 
@@ -34,10 +38,11 @@ LD_FLAGS := -lmenu \
 all: $(BINS)
 
 # Compile a binary from a '*.cc' source
-%: %.cc
+bin/%: src/%.cc
 	@echo -e "\ncompiling $@..."
 	@echo "protobuf sources are prereqs for any binary build..."
 	@make $(PROTO_CPP)
+	@mkdir -p bin
 	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(PROTO_CPP) $(LD_FLAGS)
 
 # Compile usable protobuf messages from .proto files
@@ -49,4 +54,4 @@ all: $(BINS)
 .PHONY: clean
 clean:
 	@echo "Cleaning out compiled binaries..."
-	rm -f $(BINS) *.pb.*
+	rm -rf bin proto/*.pb.*

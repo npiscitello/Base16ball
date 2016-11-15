@@ -1,7 +1,4 @@
+*/.*.swp
 .*.swp
-ncurses_test
-ball_testapp
-umpire_testapp
-main
-a.out
-*.pb.*
+bin
+proto/*.pb.*
