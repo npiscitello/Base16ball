@@ -5,15 +5,19 @@
 #include <chrono>
 // for animation delay
 #include <thread>
+// for scoreboard testing
+#include <iostream>
 #include "umpire.h"
 #include "ball.h"
 #include "scoreboard.h"
 
 // how many milliseconds to take scrolling the screen
-std::uint32_t THROW_MS = 5000;
+const std::uint32_t THROW_MS = 5000;
 // side character offset
-std::uint8_t RT_OFFSET = 20;
-std::uint8_t LF_OFFSET = 5;
+const std::uint8_t RT_OFFSET = 20;
+const std::uint8_t LF_OFFSET = 5;
+
+const std::string SCOREFILE = "highscores.b16";
 
 // use a menu to get options
 Ball::conversions_t getConversions();
@@ -23,10 +27,13 @@ Ball::width_e getWidth();
 int main() {
 
   // instantiate a scoreboard
-  Scoreboard scoreboard("highscores.b16");
-  scoreboard.setPlayerName("test");
-  scoreboard.hit();
-  scoreboard.saveScore("highscores.b16");
+  Scoreboard scoreboard(SCOREFILE);
+
+  // set player name
+  std::string name;
+  std::cout << "Enter player name: ";
+  std::cin >> name;
+  scoreboard.setPlayerName(name);
 
   // screen size
   int row, col;
@@ -106,11 +113,17 @@ int main() {
     std::string processed_ans(to_format + std::string(ans));
     if( ump.checkBall(processed_ans, ball) ) {
       wprintw(input_win, "Correct!");
+      scoreboard.hit();
     } else {
       wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
+      scoreboard.strike();
     }
     wrefresh(input_win);
   }
+
+  // save the leaderboard
+  scoreboard.saveScore(SCOREFILE);
+
   // end curses mode
   getch();
   endwin();
