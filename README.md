@@ -7,7 +7,7 @@ comes. But wait, what's this? Is that - hex printed on the ball? This is no ordi
 baseball game! Convert hexadecimal and octal to binary (or vice versa) to hit the ball and win the 
 game for your team!
 
-This game is a final project for Wentworth Institute of Technology cource ELEC3150, taught by
+This game is a final project for Wentworth Institute of Technology course ELEC3150, taught by
 Dr. Marpaung.
 
 ##Specifications and Scope

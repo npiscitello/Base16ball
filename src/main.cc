@@ -17,12 +17,15 @@ const std::uint32_t THROW_MS = 5000;
 const std::uint8_t RT_OFFSET = 20;
 const std::uint8_t LF_OFFSET = 5;
 
+// minimum terminal width
+const std::uint8_t TERM_MIN_WIDTH = 66;
+
 const std::string SCOREFILE = "highscores.b16";
 
 // use a menu to get options
-Ball::conversions_t getConversions(WINDOW* menu_win, int col);
+Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width);
 // use a menu to get difficulty
-Ball::width_e getWidth(WINDOW* menu_win, int col);
+Ball::width_e getWidth(WINDOW* menu_win, int height, int width);
 
 void printBanner(WINDOW* window, int y, int x) {
   // 46 characters wide, 7 lines tall
@@ -43,27 +46,39 @@ int main() {
   int row, col;
   getmaxyx(stdscr, row, col);
 
+  if( col < TERM_MIN_WIDTH ) {
+    mvprintw(0, 0, "Terminal must be at least");
+    mvprintw(1, 0, "%d characters wide.", TERM_MIN_WIDTH);
+    mvprintw(2, 0, "Press any key to quit.");
+    getch();
+    endwin();
+    return 1;
+  }
+
   // intro sequence
   printBanner(stdscr, 3, (col / 2) - 23);
 
   // instantiate a scoreboard
   Scoreboard scoreboard(SCOREFILE);
 
-  char name[64];
-  mvprintw(11, (col / 2) - 23, "Enter player name: ");
-  refresh();
-  getstr(name);
-  scoreboard.setPlayerName(std::string(name));
+  {
+    char name[64];
+    mvprintw(11, (col / 2) - 23, "Enter player name (63 chars max): ");
+    refresh();
+    getstr(name);
+    scoreboard.setPlayerName(std::string(name));
+  }
 
   // set up the menu window
-  WINDOW* menu_win = newwin(15, col, 15, 0);
+  WINDOW* menu_win = newwin(10, col, 14, 0);
   keypad(menu_win, TRUE);
   // globally make the cursor invisible
   curs_set(0);
+
   // get the allowed conversions
-  Ball::conversions_t conversions = getConversions(menu_win, col);
+  Ball::conversions_t conversions = getConversions(menu_win, 7, col - 2);
   // get the desired difficulty
-  Ball::width_e width = getWidth(menu_win, col);
+  Ball::width_e width = getWidth(menu_win, 7, col - 2);
 
   // create windows
   WINDOW* ball_win = newwin(5, col-1, 0, 0);
@@ -147,7 +162,7 @@ int main() {
 }
 
 // use a menu to get options
-Ball::conversions_t getConversions(WINDOW* menu_win, int col) {
+Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width) {
   // spin up storage for the conversions
   Ball::conversions_t conversions;
 
@@ -171,12 +186,12 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int col) {
   MENU* menu = new_menu(items);
   // set it's window and subwindow
   set_menu_win(menu, menu_win);
-  set_menu_sub(menu, derwin(menu_win, 10, col-2, 3, 2));
+  set_menu_sub(menu, derwin(menu_win, height, width, 2, 1));
 
   // print menu border and title
   box(menu_win, 0, 0);
-  mvwprintw(menu_win, 0, (col / 2) - 20, "Conversions: <J/K> or <UP/DOWN> to move,");
-  mvwprintw(menu_win, 1, (col / 2) - 18, "<SPACE> to select, <ENTER> to confirm");
+  mvwprintw(menu_win, 0, (width/2) - 26, "Conversions: what kinds of questions you will be asked");
+  mvwprintw(menu_win, 1, (width/2) - 32, "<K/J> or <UP/DOWN> to move, <SPACE> to select, <ENTER> to confirm");
   refresh();
 
   // make the menu multi-valued
@@ -219,14 +234,15 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int col) {
   // remove menu from the screen and memory
   unpost_menu(menu);
   free_menu(menu);
+  wclear(menu_win);
   wrefresh(menu_win);
 
   return conversions;
 }
 
-Ball::width_e getWidth(WINDOW* menu_win, int col) {
+Ball::width_e getWidth(WINDOW* menu_win, int height, int width) {
   // spin up storage for the width
-  Ball::width_e width;
+  Ball::width_e bitwidth;
 
   // define which items will be in the menu
   // <TODO> - implement a mode where both bitnesses can be used
@@ -245,21 +261,21 @@ Ball::width_e getWidth(WINDOW* menu_win, int col) {
   MENU* menu = new_menu(items);
   // set it's window and subwindow
   set_menu_win(menu, menu_win);
-  set_menu_sub(menu, derwin(menu_win, 10, col-2, 3, 2));
+  set_menu_sub(menu, derwin(menu_win, height, width, 2, 1));
 
   // print menu border and title
   box(menu_win, 0, 0);
-  mvwprintw(menu_win, 0, (col / 2) - 21, "Difficulty: bit-width of numbers presented");
-  mvwprintw(menu_win, 1, (col / 2) - 23, "<J/K> or <UP/DOWN> to move, <ENTER> to select");
+  mvwprintw(menu_win, 0, (width/2) - 21, "Difficulty: bit-width of numbers presented");
+  mvwprintw(menu_win, 1, (width/2) - 23, "<J/K> or <UP/DOWN> to move, <ENTER> to select");
   refresh();
 
   // push the menu to the ncurses screen
   post_menu(menu);
   // refresh physical terminal
-  refresh();
+  wrefresh(menu_win);
   int c = 0;
   // the enter key is converted to a newline before being passed to ncurses
-  while( (c = getch()) != '\n' ) {
+  while( (c = wgetch(menu_win)) != '\n' ) {
     switch( c ) {
       case 'j': // intentional fall-through
       case KEY_DOWN:
@@ -275,7 +291,7 @@ Ball::width_e getWidth(WINDOW* menu_win, int col) {
   }
 
   // retrieve the selected difficulty
-  width = selections_map.find(current_item(menu))->second;
+  bitwidth = selections_map.find(current_item(menu))->second;
 
   // free items from memory
   for( int i = 0; i < item_count(menu); i++ ) {
@@ -285,7 +301,8 @@ Ball::width_e getWidth(WINDOW* menu_win, int col) {
   // remove menu from the screen and memory
   unpost_menu(menu);
   free_menu(menu);
-  refresh();
+  wclear(menu_win);
+  wrefresh(menu_win);
 
-  return width;
+  return bitwidth;
 }

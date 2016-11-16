@@ -16,6 +16,7 @@ class Scoreboard {
       // check return value for errors!
       leaderboard.ParseFromIstream(&infile);
       player = leaderboard.add_player();
+      player->set_score(0);
       infile.close();
     }
 
