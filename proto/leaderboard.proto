@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+package score;
+
 message Player {
   required string name = 1;
   optional string initials = 2 [default = ""];

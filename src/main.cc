@@ -7,6 +7,7 @@
 #include <thread>
 #include "umpire.h"
 #include "ball.h"
+#include "scoreboard.h"
 
 // how many milliseconds to take scrolling the screen
 std::uint32_t THROW_MS = 5000;
@@ -20,6 +21,12 @@ Ball::conversions_t getConversions();
 Ball::width_e getWidth();
 
 int main() {
+
+  // instantiate a scoreboard
+  Scoreboard scoreboard("highscores.b16");
+  scoreboard.setPlayerName("test");
+  scoreboard.hit();
+  scoreboard.saveScore("highscores.b16");
 
   // screen size
   int row, col;

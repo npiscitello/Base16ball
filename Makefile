@@ -7,6 +7,7 @@
 # Sources to build
 SRCS := ball_testapp.cc \
 				umpire_testapp.cc \
+				scorereader.cc \
 				main.cc
 SRC := $(addprefix src/,$(SRCS))
 BINS := $(SRCS:.cc=)
@@ -52,6 +53,8 @@ bin/%: src/%.cc $(PROTO_CPP)
 	@mkdir -p bin
 	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
 
+.PHONY: protobuf
+protobuf: $(PROTO_CPP)
 # Compile usable protobuf messages from .proto files
 %.pb.h %.pb.cc: %.proto
 	@echo -e "\ngenerating protobuf messages from $^"

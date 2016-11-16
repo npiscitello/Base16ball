@@ -4,3 +4,4 @@ bin
 base16ball
 proto/*.pb.*
 *.pyc
+*.b16
