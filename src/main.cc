@@ -20,30 +20,50 @@ const std::uint8_t LF_OFFSET = 5;
 const std::string SCOREFILE = "highscores.b16";
 
 // use a menu to get options
-Ball::conversions_t getConversions();
+Ball::conversions_t getConversions(WINDOW* menu_win, int col);
 // use a menu to get difficulty
-Ball::width_e getWidth();
+Ball::width_e getWidth(WINDOW* menu_win, int col);
+
+void printBanner(WINDOW* window, int y, int x) {
+  // 46 characters wide, 7 lines tall
+  mvwprintw(window, y + 0, x, "                  Welcome To");
+  mvwprintw(window, y + 1, x, " _                   __   __  _           _ _ ");
+  mvwprintw(window, y + 2, x, "| |                 /_ | / / | |         | | |");
+  mvwprintw(window, y + 3, x, "| |__   __ _ ___  ___| |/ /_ | |__   __ _| | |");
+  mvwprintw(window, y + 4, x, "| '_ \\ / _` / __|/ _ \\ | '_ \\| '_ \\ / _` | | |");
+  mvwprintw(window, y + 5, x, "| |_) | (_| \\__ \\  __/ | (_) | |_) | (_| | | |");
+  mvwprintw(window, y + 6, x, "|_.__/ \\__,_|___/\\___|_|\\___/|_.__/ \\__,_|_|_|");
+}
 
 int main() {
+
+  // start curses mode
+  initscr();
+  // get the size of the screen
+  int row, col;
+  getmaxyx(stdscr, row, col);
+
+  // intro sequence
+  printBanner(stdscr, 3, (col / 2) - 23);
 
   // instantiate a scoreboard
   Scoreboard scoreboard(SCOREFILE);
 
-  // set player name
-  std::string name;
-  std::cout << "Enter player name: ";
-  std::cin >> name;
-  scoreboard.setPlayerName(name);
+  char name[64];
+  mvprintw(11, (col / 2) - 23, "Enter player name: ");
+  refresh();
+  getstr(name);
+  scoreboard.setPlayerName(std::string(name));
 
-  // screen size
-  int row, col;
-
-  // start curses mode with special key support and a hidden cursor
-  initscr();
-  keypad(stdscr, TRUE);
+  // set up the menu window
+  WINDOW* menu_win = newwin(15, col, 15, 0);
+  keypad(menu_win, TRUE);
+  // globally make the cursor invisible
   curs_set(0);
-  // get the size of the screen
-  getmaxyx(stdscr, row, col);
+  // get the allowed conversions
+  Ball::conversions_t conversions = getConversions(menu_win, col);
+  // get the desired difficulty
+  Ball::width_e width = getWidth(menu_win, col);
 
   // create windows
   WINDOW* ball_win = newwin(5, col-1, 0, 0);
@@ -52,14 +72,11 @@ int main() {
   // don't wait for input on the input window
   nodelay(input_win, TRUE);
 
-  // get the allowed conversions
-  Ball::conversions_t conversions = getConversions();
-
   // only do stuff if the user selected something
   if( conversions.size() != 0 ) {
 
     // instantiate umpires
-    Umpire ump(getWidth(), conversions);
+    Umpire ump(width, conversions);
 
     // generate ball and convenience strings
     Ball ball = ump.throwBall();
@@ -130,7 +147,7 @@ int main() {
 }
 
 // use a menu to get options
-Ball::conversions_t getConversions() {
+Ball::conversions_t getConversions(WINDOW* menu_win, int col) {
   // spin up storage for the conversions
   Ball::conversions_t conversions;
 
@@ -152,15 +169,26 @@ Ball::conversions_t getConversions() {
 
   // create the menu
   MENU* menu = new_menu(items);
+  // set it's window and subwindow
+  set_menu_win(menu, menu_win);
+  set_menu_sub(menu, derwin(menu_win, 10, col-2, 3, 2));
+
+  // print menu border and title
+  box(menu_win, 0, 0);
+  mvwprintw(menu_win, 0, (col / 2) - 20, "Conversions: <J/K> or <UP/DOWN> to move,");
+  mvwprintw(menu_win, 1, (col / 2) - 18, "<SPACE> to select, <ENTER> to confirm");
+  refresh();
+
   // make the menu multi-valued
   menu_opts_off(menu, O_ONEVALUE);
   // push the menu to the ncurses screen
   post_menu(menu);
   // refresh physical terminal
-  refresh();
+  wrefresh(menu_win);
+
   int c = 0;
   // the enter key is converted to a newline before being passed to ncurses
-  while( (c = getch()) != '\n' ) {
+  while( (c = wgetch(menu_win)) != '\n' ) {
     switch( c ) {
       case 'j': // intentional fall-through
       case KEY_DOWN:
@@ -191,12 +219,12 @@ Ball::conversions_t getConversions() {
   // remove menu from the screen and memory
   unpost_menu(menu);
   free_menu(menu);
-  refresh();
+  wrefresh(menu_win);
 
   return conversions;
 }
 
-Ball::width_e getWidth() {
+Ball::width_e getWidth(WINDOW* menu_win, int col) {
   // spin up storage for the width
   Ball::width_e width;
 
@@ -215,6 +243,16 @@ Ball::width_e getWidth() {
 
   // create the menu
   MENU* menu = new_menu(items);
+  // set it's window and subwindow
+  set_menu_win(menu, menu_win);
+  set_menu_sub(menu, derwin(menu_win, 10, col-2, 3, 2));
+
+  // print menu border and title
+  box(menu_win, 0, 0);
+  mvwprintw(menu_win, 0, (col / 2) - 21, "Difficulty: bit-width of numbers presented");
+  mvwprintw(menu_win, 1, (col / 2) - 23, "<J/K> or <UP/DOWN> to move, <ENTER> to select");
+  refresh();
+
   // push the menu to the ncurses screen
   post_menu(menu);
   // refresh physical terminal
