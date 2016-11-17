@@ -38,7 +38,34 @@ void printBanner(WINDOW* window, int y, int x) {
   mvwprintw(window, y + 6, x, "|_.__/ \\__,_|___/\\___|_|\\___/|_.__/ \\__,_|_|_|");
 }
 
+/*
+ *     ____
+ *   .'    '.
+ *  /'-....-'\
+ *  |        |
+ *  \.-''''-./
+ *   '.____.'
+ */
+
+/*             _
+ *            / )
+ *           / /
+ *    .-""-.//'
+ *   /_____C\___
+ *   /// 6 6~\~~`
+ *   (    7  )
+ *    \  '='/
+ *  _//'---'\
+ * ( \       `\
+ * (\/`-.__/  /
+ *  "`-._  _.'
+ */
+
 int main() {
+
+   /*========================*\
+  |     GAME INITIALIZATION    |
+   \*========================*/
 
   // start curses mode
   initscr();
@@ -76,7 +103,10 @@ int main() {
   curs_set(0);
 
   // get the allowed conversions
-  Ball::conversions_t conversions = getConversions(menu_win, 7, col - 2);
+  Ball::conversions_t conversions;
+  while( conversions.size() == 0 ) {
+    conversions = getConversions(menu_win, 7, col - 2);
+  }
   // get the desired difficulty
   Ball::width_e width = getWidth(menu_win, 7, col - 2);
 
@@ -87,71 +117,72 @@ int main() {
   // don't wait for input on the input window
   nodelay(input_win, TRUE);
 
-  // only do stuff if the user selected something
-  if( conversions.size() != 0 ) {
+   /*========================*\
+  |         GAMEPLAY           |
+   \*========================*/
 
-    // instantiate umpires
-    Umpire ump(width, conversions);
+  // instantiate umpires
+  Umpire ump(width, conversions);
 
-    // generate ball and convenience strings
-    Ball ball = ump.throwBall();
-    std::string question  = "question: " + ball.question;
-    std::string answer    = "answer: " + ball.answer;
-    std::string to_format;
-    switch( ball.to_fmt ) {
-      case Ball::HEX:
-        to_format = "0x";
-        break;
-      case Ball::OCT:
-        to_format = "0";
-        break;
-      case Ball::BIN:
-        to_format = "0b";
-        break;
-    }
-
-    // ask for answer
-    mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
-    wrefresh(input_win);
-
-    // animate question across the screen and check for answer
-    char ans[20];
-    uint8_t index = 0;
-    std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
-    for( int j = (col - RT_OFFSET); j > LF_OFFSET; j-- ) {
-      mvwprintw(ball_win, 2, j, (question + " ").c_str());
-      wrefresh(ball_win);
-      // this is not the same 20 as the size of the array, that's a coincidence
-      if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) != ERR ) {
-        if( ans[index] == '\n' ) {
-          // replace the newline with a null byte
-          ans[index] = '\0';
-          break;
-        } else {
-          // append null byte after every added character
-          ans[index + 1] = '\0';
-        }
-        index++;
-      } else {
-        // replace the error read with a null byte
-        ans[index] = '\0';
-      }
-      // wait for the animation
-      std::this_thread::sleep_for(step_delay);
-    }
-
-    // get/check answer and display result
-    wmove(input_win, 4, 5);
-    std::string processed_ans(to_format + std::string(ans));
-    if( ump.checkBall(processed_ans, ball) ) {
-      wprintw(input_win, "Correct!");
-      scoreboard.hit();
-    } else {
-      wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
-      scoreboard.strike();
-    }
-    wrefresh(input_win);
+  // generate ball and convenience strings
+  Ball ball = ump.throwBall();
+  std::string question  = "question: " + ball.question;
+  std::string answer    = "answer: " + ball.answer;
+  std::string to_format;
+  switch( ball.to_fmt ) {
+    case Ball::HEX:
+      to_format = "0x";
+      break;
+    case Ball::OCT:
+      to_format = "0";
+      break;
+    case Ball::BIN:
+      to_format = "0b";
+      break;
   }
+
+  // display question and print answer
+  mvwprintw(input_win, 2, 5, "Question: %s", ball.question.c_str());
+  mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
+  wrefresh(input_win);
+
+  // animate question across the screen and check for answer
+  char ans[20];
+  uint8_t index = 0;
+  std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
+  for( int j = (col - RT_OFFSET); j > LF_OFFSET; j-- ) {
+    mvwprintw(ball_win, 2, j, (question + " ").c_str());
+    wrefresh(ball_win);
+    // this is not the same 20 as the size of the array, that's a coincidence
+    if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) != ERR ) {
+      if( ans[index] == '\n' ) {
+        // replace the newline with a null byte
+        ans[index] = '\0';
+        break;
+      } else {
+        // append null byte after every added character
+        ans[index + 1] = '\0';
+      }
+      index++;
+    } else {
+      // replace the error read with a null byte
+      ans[index] = '\0';
+    }
+    // wait for the animation
+    std::this_thread::sleep_for(step_delay);
+  }
+
+  // get/check answer and display result
+  wmove(input_win, 4, 5);
+  std::string processed_ans(to_format + std::string(ans));
+  if( ump.checkBall(processed_ans, ball) ) {
+    wprintw(input_win, "Correct!");
+    scoreboard.hit();
+  } else {
+    wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
+    scoreboard.strike();
+  }
+  wrefresh(input_win);
 
   // save the leaderboard
   scoreboard.saveScore(SCOREFILE);
