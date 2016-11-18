@@ -20,6 +20,11 @@ const std::uint8_t LF_OFFSET = 5;
 // minimum terminal width
 const std::uint8_t TERM_MIN_WIDTH = 66;
 
+// input char array sizes
+const std::uint8_t NAME_ARR_SIZE    = 64;
+const std::uint8_t LG_ANS_ARR_SIZE  = 17;
+const std::uint8_t SM_ANS_ARR_SIZE  = 9;
+
 const std::string SCOREFILE = "highscores.b16";
 
 // use a menu to get options
@@ -28,38 +33,38 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width);
 Ball::width_e getWidth(WINDOW* menu_win, int height, int width);
 
 void printBanner(WINDOW* window, int y, int x) {
-  // 46 characters wide, 7 lines tall
-  mvwprintw(window, y + 0, x, "                  Welcome To");
-  mvwprintw(window, y + 1, x, " _                   __   __  _           _ _ ");
-  mvwprintw(window, y + 2, x, "| |                 /_ | / / | |         | | |");
-  mvwprintw(window, y + 3, x, "| |__   __ _ ___  ___| |/ /_ | |__   __ _| | |");
-  mvwprintw(window, y + 4, x, "| '_ \\ / _` / __|/ _ \\ | '_ \\| '_ \\ / _` | | |");
-  mvwprintw(window, y + 5, x, "| |_) | (_| \\__ \\  __/ | (_) | |_) | (_| | | |");
-  mvwprintw(window, y + 6, x, "|_.__/ \\__,_|___/\\___|_|\\___/|_.__/ \\__,_|_|_|");
+  // 58 characters wide, 7 lines tall
+  mvwprintw(window, y + 0, x, "                        Welcome To");
+  mvwprintw(window, y + 1, x, " _                   __   __  _           _ _      ____");
+  mvwprintw(window, y + 2, x, "| |                 /_ | / / | |         | | |   .'    '.");
+  mvwprintw(window, y + 3, x, "| |__   __ _ ___  ___| |/ /_ | |__   __ _| | |  /'-....-'\\");
+  mvwprintw(window, y + 4, x, "| '_ \\ / _` / __|/ _ \\ | '_ \\| '_ \\ / _` | | |  |        |");
+  mvwprintw(window, y + 5, x, "| |_) | (_| \\__ \\  __/ | (_) | |_) | (_| | | |  \\.-''''-./");
+  mvwprintw(window, y + 6, x, "|_.__/ \\__,_|___/\\___|_|\\___/|_.__/ \\__,_|_|_|   '.____.'");
 }
 
-/*
- *     ____
- *   .'    '.
- *  /'-....-'\
- *  |        |
- *  \.-''''-./
- *   '.____.'
- */
+void printBall(WINDOW* window, int y, int x) {
+  // 6 chars wide, 3 lines tall
+ mvwprintw(window, y + 0, x, " .--. ");
+ mvwprintw(window, y + 1, x, "(`-..)");
+ mvwprintw(window, y + 2, x, " `--' ");
+}
 
-/*             _
- *            / )
- *           / /
- *    .-""-.//'
- *   /_____C\___
- *   /// 6 6~\~~`
- *   (    7  )
- *    \  '='/
- *  _//'---'\
- * ( \       `\
- * (\/`-.__/  /
- *  "`-._  _.'
- */
+void printPlayer(WINDOW* window, int y, int x) {
+  // 14 chars wide, 12 lines tall
+  mvwprintw(window, y + 0, x,  "            _");
+  mvwprintw(window, y + 1, x,  "           / )");
+  mvwprintw(window, y + 2, x,  "          / /");
+  mvwprintw(window, y + 3, x,  "   .-\"\"-.//'");
+  mvwprintw(window, y + 4, x,  "  /_____C\\___");
+  mvwprintw(window, y + 5, x,  "  /// 6 6~\\~~`");
+  mvwprintw(window, y + 6, x,  "  (    7  )");
+  mvwprintw(window, y + 7, x,  "   \\  '='/");
+  mvwprintw(window, y + 8, x,  " _//'---'\\");
+  mvwprintw(window, y + 9, x,  "( \\       `\\");
+  mvwprintw(window, y + 10, x, "(\\/`-.__/  /");
+  mvwprintw(window, y + 11, x, " \"`-._  _.'");
+}
 
 int main() {
 
@@ -83,14 +88,14 @@ int main() {
   }
 
   // intro sequence
-  printBanner(stdscr, 3, (col / 2) - 23);
+  printBanner(stdscr, 3, (col / 2) - 29);
 
   // instantiate a scoreboard
   Scoreboard scoreboard(SCOREFILE);
 
   {
-    char name[64];
-    mvprintw(11, (col / 2) - 23, "Enter player name (63 chars max): ");
+    char name[NAME_ARR_SIZE];
+    mvprintw(11, (col / 2) - 29, "Player name: ");
     refresh();
     getstr(name);
     scoreboard.setPlayerName(std::string(name));
@@ -107,12 +112,22 @@ int main() {
   while( conversions.size() == 0 ) {
     conversions = getConversions(menu_win, 7, col - 2);
   }
-  // get the desired difficulty
+  // get the desired difficulty and set answer array size
+  uint8_t ANS_ARR_SIZE = 0;
   Ball::width_e width = getWidth(menu_win, 7, col - 2);
+  switch( width ) {
+    case Ball::WIDTH8:
+      ANS_ARR_SIZE = SM_ANS_ARR_SIZE;
+      break;
+    case Ball::WIDTH16:
+      ANS_ARR_SIZE = LG_ANS_ARR_SIZE;
+      break;
+  }
+
 
   // create windows
-  WINDOW* ball_win = newwin(5, col-1, 0, 0);
-  WINDOW* input_win = newwin(row-6, col-1, 5, 0);
+  WINDOW* ball_win = newwin(12, col-1, 0, 0);
+  WINDOW* input_win = newwin(row-6, col-1, 12, 0);
 
   // don't wait for input on the input window
   nodelay(input_win, TRUE);
@@ -147,23 +162,23 @@ int main() {
   wrefresh(input_win);
 
   // animate question across the screen and check for answer
-  char ans[20];
+  char ans[ANS_ARR_SIZE]; ans[ANS_ARR_SIZE - 1] = '\0';
   uint8_t index = 0;
   std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
   for( int j = (col - RT_OFFSET); j > LF_OFFSET; j-- ) {
     mvwprintw(ball_win, 2, j, (question + " ").c_str());
     wrefresh(ball_win);
-    // this is not the same 20 as the size of the array, that's a coincidence
     if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) != ERR ) {
       if( ans[index] == '\n' ) {
         // replace the newline with a null byte
         ans[index] = '\0';
         break;
-      } else {
-        // append null byte after every added character
-        ans[index + 1] = '\0';
+      //} else if( ans[index] == '\b' ) {
+      //  // backspace
+      //  index--;
+      } else if( index++ >= ANS_ARR_SIZE - 2 ) {
+        index--;
       }
-      index++;
     } else {
       // replace the error read with a null byte
       ans[index] = '\0';
@@ -182,6 +197,7 @@ int main() {
     wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
     scoreboard.strike();
   }
+  mvwprintw(input_win, 5, 5, "You put %s", processed_ans.c_str());
   wrefresh(input_win);
 
   // save the leaderboard
