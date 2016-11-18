@@ -46,6 +46,8 @@ struct Ball {
   std::string question;
   // the correct answer to the 'ball'
   std::string answer;
+  // how many characters to accept in an answer string
+  std::uint8_t ans_str_len;
 
   // constructor - fill storage
   Ball( width_e ty = WIDTH8, std::uint16_t number = 0, format_e from = HEX, format_e to = BIN ) :
@@ -85,17 +87,23 @@ struct Ball {
     }
     question = from_ss.str();
 
-    // generate answer
+    // generate answer and answer length
     std::stringstream to_ss;
     to_ss << std::uppercase << std::setfill('0');
     switch( to ) {
       case HEX:
         to_ss << "0x" << std::hex << std::setw(2 * width_mult) << number;
+        // 2 hex characters per byte
+        ans_str_len = width_mult * 2;
         break;
       case OCT:
         to_ss << "0" << std::oct << std::setw(3 * width_mult) << number;
+        // 3 characters per byte (for the first 2 bytes)
+        ans_str_len = width_mult * 3;
         break;
       case BIN:
+        // 8 characters per byte
+        ans_str_len = width_mult * 8;
         switch( ty ) {
           case WIDTH8:
             to_ss << "0b" << std::bitset<8>(number);

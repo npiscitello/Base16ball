@@ -22,8 +22,6 @@ const std::uint8_t TERM_MIN_WIDTH = 66;
 
 // input char array sizes
 const std::uint8_t NAME_ARR_SIZE    = 64;
-const std::uint8_t LG_ANS_ARR_SIZE  = 17;
-const std::uint8_t SM_ANS_ARR_SIZE  = 9;
 
 const std::string SCOREFILE = "highscores.b16";
 
@@ -106,6 +104,8 @@ int main() {
   keypad(menu_win, TRUE);
   // globally make the cursor invisible
   curs_set(0);
+  // disable echoing
+  noecho();
 
   // get the allowed conversions
   Ball::conversions_t conversions;
@@ -113,24 +113,15 @@ int main() {
     conversions = getConversions(menu_win, 7, col - 2);
   }
   // get the desired difficulty and set answer array size
-  uint8_t ANS_ARR_SIZE = 0;
   Ball::width_e width = getWidth(menu_win, 7, col - 2);
-  switch( width ) {
-    case Ball::WIDTH8:
-      ANS_ARR_SIZE = SM_ANS_ARR_SIZE;
-      break;
-    case Ball::WIDTH16:
-      ANS_ARR_SIZE = LG_ANS_ARR_SIZE;
-      break;
-  }
-
 
   // create windows
   WINDOW* ball_win = newwin(12, col-1, 0, 0);
   WINDOW* input_win = newwin(row-6, col-1, 12, 0);
 
-  // don't wait for input on the input window
+  // don't wait for input and enable special keys on the input window
   nodelay(input_win, TRUE);
+  //keypad(input_win, TRUE);
 
    /*========================*\
   |         GAMEPLAY           |
@@ -144,15 +135,19 @@ int main() {
   std::string question  = "question: " + ball.question;
   std::string answer    = "answer: " + ball.answer;
   std::string to_format;
+  int answer_offset;
   switch( ball.to_fmt ) {
     case Ball::HEX:
       to_format = "0x";
+      answer_offset = 20;
       break;
     case Ball::OCT:
       to_format = "0";
+      answer_offset = 19;
       break;
     case Ball::BIN:
       to_format = "0b";
+      answer_offset = 20;
       break;
   }
 
@@ -161,27 +156,40 @@ int main() {
   mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
   wrefresh(input_win);
 
-  // animate question across the screen and check for answer
-  char ans[ANS_ARR_SIZE]; ans[ANS_ARR_SIZE - 1] = '\0';
+  // allocate answer storage; need 1 extra space for the null terminator
+  char ans[ball.ans_str_len + 1]; ans[0] = '\0';
+  char test;
   uint8_t index = 0;
   std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
-  for( int j = (col - RT_OFFSET); j > LF_OFFSET; j-- ) {
-    mvwprintw(ball_win, 2, j, (question + " ").c_str());
-    wrefresh(ball_win);
-    if( (ans[index] = mvwgetch(input_win, 3, 20 + index)) != ERR ) {
-      if( ans[index] == '\n' ) {
-        // replace the newline with a null byte
-        ans[index] = '\0';
+  // animate ball across the screen and check for answer
+  for( int j = (col - RT_OFFSET); /*j > LF_OFFSET*/true; j-- ) {
+    // get and test input character
+    if( (test = wgetch(input_win)) != ERR ) {
+      if( test == '\n' ) {
+        // break loop if user presses enter
         break;
-      //} else if( ans[index] == '\b' ) {
-      //  // backspace
-      //  index--;
-      } else if( index++ >= ANS_ARR_SIZE - 2 ) {
-        index--;
+      } else if( test == (char)127 || test == (char)8 ) {
+        // decrement index if the cursor isn't at the very beginning or end
+        // There are 2 states of the array when index = ball.ans_str_len: the value of
+        // ans[ball.ans_str_len] = '\0' or the value of ans[ball.ans_str_len] is a
+        // meaningful character. If it's a meaningful character, we don't want to decrement
+        // the index because that will push the cursor 2 characters back since it's already
+        // sitting at the last character.
+        if( index >= 1 && (index < ball.ans_str_len - 1 || ans[index] == '\0') ) {
+          index--;
+        }
+        mvwaddch(input_win, 3, answer_offset + index, ' ');
+        ans[index] = '\0';
+      } else {
+        // write to screen and answer array
+        mvwaddch(input_win, 3, answer_offset + index, test);
+        ans[index] = test;
+        ans[index + 1] = '\0';
+        // increment index if it won't overflow the answer
+        if( index < ball.ans_str_len - 1 ) {
+          index++;
+        }
       }
-    } else {
-      // replace the error read with a null byte
-      ans[index] = '\0';
     }
     // wait for the animation
     std::this_thread::sleep_for(step_delay);
@@ -197,7 +205,6 @@ int main() {
     wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
     scoreboard.strike();
   }
-  mvwprintw(input_win, 5, 5, "You put %s", processed_ans.c_str());
   wrefresh(input_win);
 
   // save the leaderboard
