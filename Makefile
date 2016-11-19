@@ -53,9 +53,9 @@ bin/%: src/%.cc $(PROTO_CPP)
 	@mkdir -p bin
 	g++ $(CXXFLAGS) $(INCLUDES) $(LD_PATHS) -o $@ $^ $(LD_FLAGS)
 
+# Compile usable protobuf messages from .proto files
 .PHONY: protobuf
 protobuf: $(PROTO_CPP)
-# Compile usable protobuf messages from .proto files
 %.pb.h %.pb.cc: %.proto
 	@echo -e "\ngenerating protobuf messages from $^"
 	protoc --cpp_out=. $(PROTO_MSGS)
@@ -67,5 +67,5 @@ base16ball: bin/main
 # Clean all compiled things
 .PHONY: clean
 clean:
-	@echo -e "\nCleaning out compiled things..."
+	@echo -e "\nCleaning out compiled binaries..."
 	rm -rf bin proto/*.pb.* base16ball

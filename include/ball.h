@@ -1,4 +1,3 @@
-// Ball class for base16ball
 // Nick Piscitello, 11/2016
 
 #ifndef BALL_H

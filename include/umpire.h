@@ -1,4 +1,3 @@
-// Umpire class for base16ball
 // Nick Piscitello, 11/2016
 
 #ifndef UMPIRE_H
@@ -6,6 +5,7 @@
 
 #include "ball.h"
 #include <random>
+// to seed the random number generator
 #include <chrono>
 // std::transform
 #include <algorithm>
@@ -24,7 +24,6 @@ struct Umpire {
   void setConversions(Ball::conversions_t c) { allowed_conversions = c; }
 
   // 'throw' a ball (generate ball and return it)
-  // this method is starting out very verbose; it will be optimized
   Ball throwBall() {
     // randomly pick the conversion this ball is asking for
     Ball::conversions_t::value_type conversion;
@@ -50,7 +49,7 @@ struct Umpire {
   }
 
   private:
-    // the difficulty of the game
+    // the difficulty of the umpire
     Ball::width_e width;
     // the allowed conversions
     Ball::conversions_t allowed_conversions;
