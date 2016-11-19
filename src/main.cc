@@ -14,14 +14,15 @@
 // how many milliseconds to take scrolling the screen
 const std::uint32_t THROW_MS = 5000;
 // side character offset
-const std::uint8_t RT_OFFSET = 20;
-const std::uint8_t LF_OFFSET = 5;
+const std::uint8_t RT_OFFSET = 12;
+const std::uint8_t LF_OFFSET = 1;
 
-// minimum terminal width
+// minimum terminal dimensions
 const std::uint8_t TERM_MIN_WIDTH = 66;
+const std::uint8_t TERM_MIN_HEIGHT = 24;
 
 // input char array sizes
-const std::uint8_t NAME_ARR_SIZE    = 64;
+const std::uint8_t NAME_ARR_SIZE = 64;
 
 const std::string SCOREFILE = "highscores.b16";
 
@@ -42,10 +43,10 @@ void printBanner(WINDOW* window, int y, int x) {
 }
 
 void printBall(WINDOW* window, int y, int x) {
-  // 6 chars wide, 3 lines tall
- mvwprintw(window, y + 0, x, " .--. ");
- mvwprintw(window, y + 1, x, "(`-..)");
- mvwprintw(window, y + 2, x, " `--' ");
+  // 12 chars wide, 3 lines tall
+  mvwprintw(window, y + 0, x, " .--. --- ");
+  mvwprintw(window, y + 1, x, "(`-..) ---- ");
+  mvwprintw(window, y + 2, x, " `--' --- ");
 }
 
 void printPlayer(WINDOW* window, int y, int x) {
@@ -76,10 +77,11 @@ int main() {
   int row, col;
   getmaxyx(stdscr, row, col);
 
-  if( col < TERM_MIN_WIDTH ) {
+  if( row < TERM_MIN_HEIGHT || col < TERM_MIN_WIDTH ) {
     mvprintw(0, 0, "Terminal must be at least");
-    mvprintw(1, 0, "%d characters wide.", TERM_MIN_WIDTH);
-    mvprintw(2, 0, "Press any key to quit.");
+    mvprintw(1, 0, "%d characters wide and", TERM_MIN_WIDTH);
+    mvprintw(2, 0, "%d characters tall.", TERM_MIN_HEIGHT);
+    mvprintw(3, 0, "Press any key to quit.");
     getch();
     endwin();
     return 1;
@@ -88,14 +90,15 @@ int main() {
   // intro sequence
   printBanner(stdscr, 3, (col / 2) - 29);
 
-  // instantiate a scoreboard
+  // instantiate scoreboard and get player name
   Scoreboard scoreboard(SCOREFILE);
-
   {
-    char name[NAME_ARR_SIZE];
-    mvprintw(11, (col / 2) - 29, "Player name: ");
-    refresh();
-    getstr(name);
+    char name[NAME_ARR_SIZE]; name[0] = '\0';
+    while( name[0] == '\0' ) {
+      mvprintw(11, (col / 2) - 29, "Player name: ");
+      refresh();
+      getstr(name);
+    }
     scoreboard.setPlayerName(std::string(name));
   }
 
@@ -115,13 +118,18 @@ int main() {
   // get the desired difficulty and set answer array size
   Ball::width_e width = getWidth(menu_win, 7, col - 2);
 
-  // create windows
-  WINDOW* ball_win = newwin(12, col-1, 0, 0);
-  WINDOW* input_win = newwin(row-6, col-1, 12, 0);
+  // clear stdscr and create game windows - #lines, #columns, y0, x0
+  erase(); refresh();
+  WINDOW* player_win = newwin(12, 15, 0, 0);
+  WINDOW* ball_win = newwin(12, col - 15, 0, 15);
+  WINDOW* input_win = newwin(0, 0, 12, 0);
 
-  // don't wait for input and enable special keys on the input window
+  // get size of ball window
+  int brow, bcol;
+  getmaxyx(ball_win, brow, bcol);
+
+  // don't block for input on the input window
   nodelay(input_win, TRUE);
-  //keypad(input_win, TRUE);
 
    /*========================*\
   |         GAMEPLAY           |
@@ -130,81 +138,124 @@ int main() {
   // instantiate umpires
   Umpire ump(width, conversions);
 
-  // generate ball and convenience strings
-  Ball ball = ump.throwBall();
-  std::string question  = "question: " + ball.question;
-  std::string answer    = "answer: " + ball.answer;
-  std::string to_format;
-  int answer_offset;
-  switch( ball.to_fmt ) {
-    case Ball::HEX:
-      to_format = "0x";
-      answer_offset = 20;
-      break;
-    case Ball::OCT:
-      to_format = "0";
-      answer_offset = 19;
-      break;
-    case Ball::BIN:
-      to_format = "0b";
-      answer_offset = 20;
-      break;
-  }
-
-  // display question and print answer
-  mvwprintw(input_win, 2, 5, "Question: %s", ball.question.c_str());
-  mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
+  // display player
+  printPlayer(player_win, 0, 1);
+  wrefresh(player_win);
+    
+  mvwprintw(input_win, 2, 5, "Press any key to throw the first pitch...");
   wrefresh(input_win);
+  getch();
+  werase(input_win);
 
-  // allocate answer storage; need 1 extra space for the null terminator
-  char ans[ball.ans_str_len + 1]; ans[0] = '\0';
-  char test;
-  uint8_t index = 0;
-  std::chrono::milliseconds step_delay(THROW_MS / (col - (LF_OFFSET + RT_OFFSET)));
-  // animate ball across the screen and check for answer
-  for( int j = (col - RT_OFFSET); /*j > LF_OFFSET*/true; j-- ) {
-    // get and test input character
-    if( (test = wgetch(input_win)) != ERR ) {
-      if( test == '\n' ) {
-        // break loop if user presses enter
+  while( true ) {
+    // generate ball and convenience strings
+    Ball ball = ump.throwBall();
+    std::string question  = "question: " + ball.question;
+    std::string answer    = "answer: " + ball.answer;
+    std::string to_format;
+    int answer_offset;
+    switch( ball.to_fmt ) {
+      case Ball::HEX:
+        to_format = "0x";
+        answer_offset = 20;
         break;
-      } else if( test == (char)127 || test == (char)8 ) {
-        // decrement index if the cursor isn't at the very beginning or end
-        // There are 2 states of the array when index = ball.ans_str_len: the value of
-        // ans[ball.ans_str_len] = '\0' or the value of ans[ball.ans_str_len] is a
-        // meaningful character. If it's a meaningful character, we don't want to decrement
-        // the index because that will push the cursor 2 characters back since it's already
-        // sitting at the last character.
-        if( index >= 1 && (index < ball.ans_str_len - 1 || ans[index] == '\0') ) {
-          index--;
-        }
-        mvwaddch(input_win, 3, answer_offset + index, ' ');
-        ans[index] = '\0';
-      } else {
-        // write to screen and answer array
-        mvwaddch(input_win, 3, answer_offset + index, test);
-        ans[index] = test;
-        ans[index + 1] = '\0';
-        // increment index if it won't overflow the answer
-        if( index < ball.ans_str_len - 1 ) {
-          index++;
+      case Ball::OCT:
+        to_format = "0";
+        answer_offset = 19;
+        break;
+      case Ball::BIN:
+        to_format = "0b";
+        answer_offset = 20;
+        break;
+    }
+
+    // display question and print answer
+    mvwprintw(input_win, 2, 5, "Question: %s", ball.question.c_str());
+    mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
+    wrefresh(input_win);
+
+    // allocate answer storage; need 1 extra space for the null terminator
+    char ans[ball.ans_str_len + 1]; ans[0] = '\0';
+    char test; bool entered = false;
+    uint8_t index = 0;
+    std::chrono::milliseconds step_delay(THROW_MS / (bcol - (LF_OFFSET + RT_OFFSET)));
+    // animate ball across the screen and check for answer
+    // a better way to do this would be to run this loop at full speed and update the ball's
+    // position based on checking if enough time has elapsed - as it stands, the game feels laggy in
+    // small terminal windows because the animation delay is fairly long
+    for( int i = (bcol - RT_OFFSET); i > LF_OFFSET; i-- ) {
+      // get and test input character
+      if( (test = wgetch(input_win)) != ERR ) {
+        if( test == '\n' ) {
+          // break loop if user presses enter
+          entered = true;
+          break;
+        } else if( test == (char)127 || test == (char)8 ) {
+          // decrement index if the cursor isn't at the very beginning or end
+          // There are 2 states of the array when index = ball.ans_str_len: the value of
+          // ans[ball.ans_str_len] = '\0' or the value of ans[ball.ans_str_len] is a
+          // meaningful character. If it's a meaningful character, we don't want to decrement
+          // the index because that will push the cursor 2 characters back since it's already
+          // sitting at the last character.
+          if( index >= 1 && (index < ball.ans_str_len - 1 || ans[index] == '\0') ) {
+            index--;
+          }
+          mvwaddch(input_win, 3, answer_offset + index, ' ');
+          ans[index] = '\0';
+        } else {
+          // write to screen and answer array
+          mvwaddch(input_win, 3, answer_offset + index, test);
+          ans[index] = test;
+          ans[index + 1] = '\0';
+          // increment index if it won't overflow the answer
+          if( index < ball.ans_str_len - 1 ) {
+            index++;
+          }
         }
       }
+      // animate!
+      printBall(ball_win, 7, i);
+      wrefresh(ball_win);
+      std::this_thread::sleep_for(step_delay);
     }
-    // wait for the animation
-    std::this_thread::sleep_for(step_delay);
+
+    // get/check answer and display result
+    // a correct answer entered with the enter key counts as a hit
+    // a correct answer on timeout counts as a ball
+    // any incorrect answer counts as a strike
+    wmove(input_win, 4, 5);
+    std::string processed_ans(to_format + std::string(ans));
+    if( ump.checkBall(processed_ans, ball) ) {
+      if( entered ) {
+        wprintw(input_win, "Correct! You hit the ball!");
+        scoreboard.hit();
+      } else {
+        wprintw(input_win, "Correct! The pitcher threw a ball.");
+        scoreboard.ball();
+      }
+    } else {
+      wprintw(input_win, "Incorrect - that's a strike! the answer was %s", ball.answer.c_str());
+      scoreboard.strike();
+    }
+
+    // check game progress
+    if( !scoreboard.struckOut() ) {
+      mvwprintw(input_win, 5, 5, "Press any key to throw the next pitch...");
+      wrefresh(input_win);
+      getch();
+      werase(input_win);
+      werase(ball_win);
+    } else {
+      break;
+    }
   }
 
-  // get/check answer and display result
-  wmove(input_win, 4, 5);
-  std::string processed_ans(to_format + std::string(ans));
-  if( ump.checkBall(processed_ans, ball) ) {
-    wprintw(input_win, "Correct!");
-    scoreboard.hit();
-  } else {
-    wprintw(input_win, "Incorrect - the answer was %s", ball.answer.c_str());
-    scoreboard.strike();
-  }
+  // struck out!
+  mvwprintw(input_win, 6, 5, "Oh no! You've struck out!");
+  mvwprintw(input_win, 7, 5, "Your score is being saved in '%s'.", SCOREFILE.c_str());
+  mvwprintw(input_win, 8, 5, "Use 'scorereader' to see the leaderboard.");
+  mvwprintw(input_win, 9, 5, "Give it another shot, see if you can beat your high score!");
+  mvwprintw(input_win, 11, 5, "Press any key to exit...");
   wrefresh(input_win);
 
   // save the leaderboard
