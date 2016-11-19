@@ -45,7 +45,7 @@ game: base16ball
 	@echo ""
 
 # Compile all binaries
-all: $(BINS)
+all: base16ball $(BINS)
 
 # Compile a binary from a '*.cc' source
 bin/%: src/%.cc $(PROTO_CPP)

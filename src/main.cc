@@ -1,19 +1,23 @@
+// for graphics
 #include <ncurses.h>
+// for graphics
 #include <menu.h>
+// for selection menus
 #include <map>
 // for animation
 #include <chrono>
 // for animation delay
 #include <thread>
-// for scoreboard testing
-#include <iostream>
+
+// core game classes
 #include "umpire.h"
 #include "ball.h"
 #include "scoreboard.h"
 
 // how many milliseconds to take scrolling the screen
 const std::uint32_t THROW_MS = 5000;
-// side character offset
+
+// ball animation start/endpoints
 const std::uint8_t RT_OFFSET = 12;
 const std::uint8_t LF_OFFSET = 1;
 
@@ -24,11 +28,12 @@ const std::uint8_t TERM_MIN_HEIGHT = 24;
 // input char array sizes
 const std::uint8_t NAME_ARR_SIZE = 64;
 
+// where to save the scoreboard protobuf message
 const std::string SCOREFILE = "highscores.b16";
 
-// use a menu to get options
+// use a menu to get options (defined below)
 Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width);
-// use a menu to get difficulty
+// use a menu to get difficulty (defined below)
 Ball::width_e getWidth(WINDOW* menu_win, int height, int width);
 
 void printBanner(WINDOW* window, int y, int x) {
@@ -77,6 +82,7 @@ int main() {
   int row, col;
   getmaxyx(stdscr, row, col);
 
+  // check terminal size against minimums
   if( row < TERM_MIN_HEIGHT || col < TERM_MIN_WIDTH ) {
     mvprintw(0, 0, "Terminal must be at least");
     mvprintw(1, 0, "%d characters wide and", TERM_MIN_WIDTH);
@@ -105,48 +111,55 @@ int main() {
   // set up the menu window
   WINDOW* menu_win = newwin(10, col, 14, 0);
   keypad(menu_win, TRUE);
-  // globally make the cursor invisible
+  // globally make the cursor invisible and disable echoing
   curs_set(0);
-  // disable echoing
   noecho();
 
-  // get the allowed conversions
+  // get the user's desired conversions
   Ball::conversions_t conversions;
   while( conversions.size() == 0 ) {
     conversions = getConversions(menu_win, 7, col - 2);
   }
-  // get the desired difficulty and set answer array size
+  // get the desired difficulty
   Ball::width_e width = getWidth(menu_win, 7, col - 2);
 
   // clear stdscr and create game windows - #lines, #columns, y0, x0
   erase(); refresh();
   WINDOW* player_win = newwin(12, 15, 0, 0);
   WINDOW* ball_win = newwin(12, col - 15, 0, 15);
-  WINDOW* input_win = newwin(0, 0, 12, 0);
+  WINDOW* input_win = newwin(12, col - 12, 12, 0);
+  WINDOW* status_win = newwin(12, 12, 12, col - 12);
 
   // get size of ball window
   int brow, bcol;
   getmaxyx(ball_win, brow, bcol);
 
-  // don't block for input on the input window
+  // don't block for input on the input window (allows for fluid animation)
   nodelay(input_win, TRUE);
 
    /*========================*\
   |         GAMEPLAY           |
    \*========================*/
 
-  // instantiate umpires
+  // instantiate umpire
   Umpire ump(width, conversions);
 
-  // display player
+  // display player graphic
   printPlayer(player_win, 0, 1);
   wrefresh(player_win);
-    
-  mvwprintw(input_win, 2, 5, "Press any key to throw the first pitch...");
+
+  // wait for the user to be ready
+  mvwprintw(input_win, 1, 5, "Press any key to throw the first pitch...");
   wrefresh(input_win);
   getch();
   werase(input_win);
 
+  // initially display score and strikes
+  mvwprintw(status_win, 2, 0, "Score: %d", scoreboard.getScore());
+  mvwprintw(status_win, 4, 0, "Strikes: %d", scoreboard.getStrikes());
+  wrefresh(status_win);
+
+  // gameplay loop - this will continue until the player strikes out
   while( true ) {
     // generate ball and convenience strings
     Ball ball = ump.throwBall();
@@ -169,9 +182,9 @@ int main() {
         break;
     }
 
-    // display question and print answer
-    mvwprintw(input_win, 2, 5, "Question: %s", ball.question.c_str());
-    mvwprintw(input_win, 3, 5, "Your answer: %s", to_format.c_str());
+    // display question and answer prompt
+    mvwprintw(input_win, 1, 5, "Question: %s", ball.question.c_str());
+    mvwprintw(input_win, 2, 5, "Your answer: %s", to_format.c_str());
     wrefresh(input_win);
 
     // allocate answer storage; need 1 extra space for the null terminator
@@ -182,29 +195,30 @@ int main() {
     // animate ball across the screen and check for answer
     // a better way to do this would be to run this loop at full speed and update the ball's
     // position based on checking if enough time has elapsed - as it stands, the game feels laggy in
-    // small terminal windows because the animation delay is fairly long
+    // small terminal windows because the animation delay is relatively long
     for( int i = (bcol - RT_OFFSET); i > LF_OFFSET; i-- ) {
-      // get and test input character
+
+      // get and test input character - this is the loop the user interacts with
       if( (test = wgetch(input_win)) != ERR ) {
         if( test == '\n' ) {
           // break loop if user presses enter
           entered = true;
           break;
+        // ncurses doesn't play nice with the backspace key
         } else if( test == (char)127 || test == (char)8 ) {
           // decrement index if the cursor isn't at the very beginning or end
-          // There are 2 states of the array when index = ball.ans_str_len: the value of
-          // ans[ball.ans_str_len] = '\0' or the value of ans[ball.ans_str_len] is a
-          // meaningful character. If it's a meaningful character, we don't want to decrement
-          // the index because that will push the cursor 2 characters back since it's already
-          // sitting at the last character.
+          // if the cursor is at the very end, that means it's already where the index says it
+          // should be instead of 1 posision behind (where it usually is). This means that, if we
+          // decrement index, we end up jumping 2 posisions back. If the cursor is one position
+          // behind the index, that's where it's supposed to be - we can treat it normally.
           if( index >= 1 && (index < ball.ans_str_len - 1 || ans[index] == '\0') ) {
             index--;
           }
-          mvwaddch(input_win, 3, answer_offset + index, ' ');
+          mvwaddch(input_win, 2, answer_offset + index, ' ');
           ans[index] = '\0';
         } else {
           // write to screen and answer array
-          mvwaddch(input_win, 3, answer_offset + index, test);
+          mvwaddch(input_win, 2, answer_offset + index, test);
           ans[index] = test;
           ans[index + 1] = '\0';
           // increment index if it won't overflow the answer
@@ -213,6 +227,7 @@ int main() {
           }
         }
       }
+
       // animate!
       printBall(ball_win, 7, i);
       wrefresh(ball_win);
@@ -223,24 +238,30 @@ int main() {
     // a correct answer entered with the enter key counts as a hit
     // a correct answer on timeout counts as a ball
     // any incorrect answer counts as a strike
-    wmove(input_win, 4, 5);
+    wmove(input_win, 3, 5);
     std::string processed_ans(to_format + std::string(ans));
     if( ump.checkBall(processed_ans, ball) ) {
       if( entered ) {
         wprintw(input_win, "Correct! You hit the ball!");
         scoreboard.hit();
       } else {
-        wprintw(input_win, "Correct! The pitcher threw a ball.");
+        wprintw(input_win, "Correct! The ump called a ball.");
         scoreboard.ball();
       }
     } else {
-      wprintw(input_win, "Incorrect - that's a strike! the answer was %s", ball.answer.c_str());
+      wprintw(input_win, "Incorrect - that's a strike!");
+      mvwprintw(input_win, 4, 5, "The answer was %s", ball.answer.c_str());
       scoreboard.strike();
     }
 
-    // check game progress
+    // display score and strikes
+    mvwprintw(status_win, 2, 0, "Score: %d", scoreboard.getScore());
+    mvwprintw(status_win, 4, 0, "Strikes: %d", scoreboard.getStrikes());
+    wrefresh(status_win);
+
+    // check strikeout status and wait for user to be ready for the next round
     if( !scoreboard.struckOut() ) {
-      mvwprintw(input_win, 5, 5, "Press any key to throw the next pitch...");
+      mvwprintw(input_win, 6, 5, "Press any key to throw the next pitch...");
       wrefresh(input_win);
       getch();
       werase(input_win);
@@ -252,9 +273,9 @@ int main() {
 
   // struck out!
   mvwprintw(input_win, 6, 5, "Oh no! You've struck out!");
-  mvwprintw(input_win, 7, 5, "Your score is being saved in '%s'.", SCOREFILE.c_str());
+  mvwprintw(input_win, 7, 5, "Your score is being saved in '%s'", SCOREFILE.c_str());
   mvwprintw(input_win, 8, 5, "Use 'scorereader' to see the leaderboard.");
-  mvwprintw(input_win, 9, 5, "Give it another shot, see if you can beat your high score!");
+  mvwprintw(input_win, 9, 5, "Play again, try to beat your high score!");
   mvwprintw(input_win, 11, 5, "Press any key to exit...");
   wrefresh(input_win);
 
@@ -273,10 +294,10 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width) {
 
   // define which items will be in the menu
   ITEM* items[5];
-  items[0] = new_item("HEX -> BIN", "- Enable questions that give a hex number and ask for binary");
-  items[1] = new_item("BIN -> HEX", "- Enable questions that give a binary number and ask for hex");
-  items[2] = new_item("OCT -> BIN", "- Enable questions that give an octal number and ask for binary");
-  items[3] = new_item("BIN -> OCT", "- Enable questions that give a binary number and ask for octal");
+  items[0] = new_item("HEX -> BIN", "- convert hexadecimal to binary");
+  items[1] = new_item("BIN -> HEX", "- convert binary to hexadecimal");
+  items[2] = new_item("OCT -> BIN", "- convert octal to binary");
+  items[3] = new_item("BIN -> OCT", "- convert binary to octal");
   // for some reason, the items list needs to be null terminated?
   items[4] = (ITEM*)NULL;
 
@@ -287,9 +308,8 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width) {
   selections_map.insert(std::make_pair(items[2], std::make_pair(Ball::OCT, Ball::BIN)));
   selections_map.insert(std::make_pair(items[3], std::make_pair(Ball::BIN, Ball::OCT)));
 
-  // create the menu
+  // create the menu and its windows
   MENU* menu = new_menu(items);
-  // set it's window and subwindow
   set_menu_win(menu, menu_win);
   set_menu_sub(menu, derwin(menu_win, height, width, 2, 1));
 
@@ -306,6 +326,7 @@ Ball::conversions_t getConversions(WINDOW* menu_win, int height, int width) {
   // refresh physical terminal
   wrefresh(menu_win);
 
+  // menu seletion loop - this is the the part that the user interacts with
   int c = 0;
   // the enter key is converted to a newline before being passed to ncurses
   while( (c = wgetch(menu_win)) != '\n' ) {
@@ -362,9 +383,8 @@ Ball::width_e getWidth(WINDOW* menu_win, int height, int width) {
   selections_map.insert(std::make_pair(items[0], Ball::WIDTH8));
   selections_map.insert(std::make_pair(items[1], Ball::WIDTH16));
 
-  // create the menu
+  // create the menu and its windows
   MENU* menu = new_menu(items);
-  // set it's window and subwindow
   set_menu_win(menu, menu_win);
   set_menu_sub(menu, derwin(menu_win, height, width, 2, 1));
 
@@ -378,6 +398,8 @@ Ball::width_e getWidth(WINDOW* menu_win, int height, int width) {
   post_menu(menu);
   // refresh physical terminal
   wrefresh(menu_win);
+
+  // this is the menu loop that the user actually interacts with
   int c = 0;
   // the enter key is converted to a newline before being passed to ncurses
   while( (c = wgetch(menu_win)) != '\n' ) {
