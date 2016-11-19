@@ -60,9 +60,9 @@ protobuf: $(PROTO_CPP)
 	@echo -e "\ngenerating protobuf messages from $^"
 	protoc --cpp_out=. $(PROTO_MSGS)
 
-# make the full game (basically makes main and copies it)
+# make the full game (makes main and symlinks it to a file in the repo root)
 base16ball: bin/main
-	@cp bin/main base16ball
+	@ln -s $< base16ball
 
 # Clean all compiled things
 .PHONY: clean
