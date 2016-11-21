@@ -81,3 +81,10 @@ Following a successful build, you should see a `bin` folder in the root director
 
 <div id='docs'>
 ##Gameplay
+Generally the game is self-explanatory. However, here are some tips if you have any trouble:
+
+* The `enter name` prompt in the beginning is limited to 63 characters. You may use any alphanumeric character and any symbol on the keyboard.
+* In the first selection menu (where you select the allowed conversions), you must select your choices by highlighting your desired conversion and pressing the space bar. You must choose at least one and may choose multiple or all conversions for a more challenging game.
+* The second selection menu is simple - just highlight your choice and press enter to select it. There is no need to use the space bar.
+* A `press any key` prompt requires you to press a key on the keyboard that would produce a character on the terminal. This includes letters, numbers, symbols, the `enter` key, and the `backspace` key but does not include modifier keys such as `shift` and `control`.
+* User input in the main game interface is case-insensitive. You may use letters, numbers, or symbols if so desired. The backspace key will work as expected during play.
