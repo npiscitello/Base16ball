@@ -4,6 +4,9 @@
 # They shouldn't hurt things on other systems as long as the
 # include file and library can still be found
 
+# add custom-built binaries to the path for WIT's Turing server
+PATH := /home/piscitellon/custom_builds/install/bin:$(PATH)
+
 # Sources to build
 SRCS := ball_testapp.cc \
 				umpire_testapp.cc \
