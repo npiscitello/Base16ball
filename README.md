@@ -1,11 +1,11 @@
-#base16ball
+# base16ball
 *Teaching binary conversions one curveball at a time!*
 
 It's the bottom of the ninth, 2 outs, and you step onto the plate. You are the Computer Science department's last hope to win the championship! You steady yourself for the pitch, and here it comes. But wait, what's this? Is that - hex printed on the ball? This is no ordinary baseball game! Convert hexadecimal and octal to binary (or vice versa) to hit the ball and win the game for your team!
 
 This game is a final project for Wentworth Institute of Technology course ELEC3150, taught by Dr. Marpaung.
 
-###Table of Contents
+### Table of Contents
 1. [Specifications and Scope](#specscope)
 2. [Implementation](#implement)
 3. [Installation](#install)
@@ -13,9 +13,10 @@ This game is a final project for Wentworth Institute of Technology course ELEC31
 5. [Gameplay](#docs)
 
 <div id='specscope'/>
-##Specifications and Scope
+
+## Specifications and Scope
 This game is a baseball-themed way to exercise your binary, oct, and hex conversion skills. Each `ball` will have a number and a format attached to it - your job is to convert the number to the requested format. If you do this fast enough, you'll hit the ball! If you get the right answer but take a little too long, the pitcher threw a ball. If you input the wrong answer or don't answer at all, you'll get a strike!
-###Requirements (this game will...):
+### Requirements (this game will...):
 * be text based, with all input and output occuring on a terminal
 * compile with no warnings or errors on Wentworth's Turing system
 * entertain the user for at least one hour
@@ -31,30 +32,32 @@ This game is a baseball-themed way to exercise your binary, oct, and hex convers
 * animate the 'ball' being pitched
 * have provisions for hits, balls, or strikes
 
-###Close Goals (this game should...):
+### Close Goals (this game should...):
 * animate the batting action
 * have additional provisions for a single, double, triple, or home run
 
-###Far Goals (this game could...):
+### Far Goals (this game could...):
 * have both batting and fielding play modes
 * display the baseball diamond with runners on base
 
 <div id='implement'/>
-##Implementation
-###Class Headers
+
+## Implementation
+### Class Headers
 * `include/ball.h` - manages interactive gameplay state, generating and storing the questions and answers and related data
 * `include/umpire.h` - generates, stores, and manages instances of the `ball` class. Checks users' answers against the stored correct answer.
 * `include/scoreboard.h` - takes care of clerical aspects of the game, handling score and strike state and managing the protobuf message containing the leaderboard
 * `proto/leaderboard.proto` - This 'class' is actually a [Google protocol buffer message](https://developers.google.com/protocol-buffers/). It handles persistant storage and serialization and stores the score during the game.
 
-###Source Files
+### Source Files
 * `src/main.cc` - this is where the magic happens. The `main()` function lives here, coordinating all the above classes to provide stable game mechanics while using the `ncurses` library to display a captivating gameplay interface.
 * `src/scorereader.cc` - this is a utility to view the leaderboard. It began life as a development tool but became useful as a companion app to the game.
 * `src/ball_testapp.cc` - used during development to verify the functionality of the `ball` class, it generates and displays many different types of 'balls'
 * `src/umpire_testapp.cc` - very similar to the `ball` testapp; spins up instances of the `umpire` class and displays the result.
 
 <div id='install'/>
-##Installation
+
+## Installation
 This game relies on the `protobuf` library [from Google](https://github.com/google/protobuf) and [the ncurses library](https://www.gnu.org/software/ncurses/). Both are widely available in the package management systems of many distributions (for example, `sudo pacman -S protobuf ncurses` on Arch) or as buildable source downloads. Specific dependencies are as follows:
 
 * Google's protobuf compiler, `protoc` (to compile `.proto` files to `.pb.cc` and `.pb.h` files for use with C++ source)
@@ -73,14 +76,16 @@ On systems that meet the dependency requirements, installation should be as simp
 	 Game essentials compiled
 	==========================
 
-<div id='exec'>
-##Execution
+<div id='exec'/>
+
+## Execution
 **NOTE:** *The required runtime libraries are not automatically in the system search path on WIT's Turing server! They are located in `/home/piscitellon/custom_builds/install/lib`. Be sure to add that path to your `LD_LIBRARY_PATH` before executing the game.*
 
 Following a successful build, you should see a `bin` folder in the root directory of the repository containing `main` (and possibly other executables) and a `base16ball` file in the root symlinked to `bin/main`. That's the game - run `./base16ball` to start your baseball career! Additional steps may be neccessary on WIT's Turing server, see the note above.
 
-<div id='docs'>
-##Gameplay
+<div id='docs'/>
+
+## Gameplay
 Generally the game is self-explanatory. However, here are some tips if you have any trouble:
 
 * The `enter name` prompt in the beginning is limited to 63 characters. You may use any alphanumeric character and any symbol on the keyboard.
